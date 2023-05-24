@@ -1,176 +1,134 @@
-if(navigator.geolocation){
-    console.log('Your browser supports Geolocation API!');
-    navigator.geolocation.getCurrentPosition(success);
-        maximimAge: 10*60*1000;
-        timeout: 0;
-} else{
-    console.log('Your browser does not supports Geolocation API!');
-}
+// Leaflet has native support for raster maps, So you can create a map with a few commands only!
 
-function success(position){
-    console.log (position)
-    const lat = position.coords.latitude;
-    const lng = position.coords.longitude;
-    //sconsole.log(lat, lng);
+// The Leaflet map Object
+const map = L.map('map').setView([14.658642,120.985043], 12);
 
-    //Map bounds
-    var southWest = L.latLng(5.996826, 118.400825),
-    northEast = L.latLng(20.497456, 126.073096),
-    bounds = L.latLngBounds(southWest, northEast);
+// Get your own API Key on https://myprojects.geoapify.com
+const myAPIKey = "72ba55a8fd634344b11cb5424941a28b";
 
-    //Map options
-    let mapOptions = {
-        center: [lat, lng],
-        zoom: 12,
-        minZoom: 6,
-        maxZoom: 18,
-        //maxBoundsViscosity: 1.0,
-    }
+// Retina displays require different mat tiles quality
+const isRetina = L.Browser.retina;
 
-    const myAPIKey = "72ba55a8fd634344b11cb5424941a28b";
-    const apiKey = "72ba55a8fd634344b11cb5424941a28b";
+const baseUrl = "https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey={apiKey}";
+const retinaUrl = "https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}@2x.png?apiKey={apiKey}";
 
-    //Create a map
-    var map = L.map('map', mapOptions)
-                .setMaxBounds(bounds);
+// Add map tiles layer. Set 20 as the maximal zoom and provide map data attribution.
+L.tileLayer(isRetina ? retinaUrl : baseUrl, {
+  attribution: 'Powered by <a href="https://www.geoapify.com/" target="_blank">Geoapify</a> | <a href="https://openmaptiles.org/" rel="nofollow" target="_blank">© OpenMapTiles</a> <a href="https://www.openstreetmap.org/copyright" rel="nofollow" target="_blank">© OpenStreetMap</a> contributors',
+  apiKey: myAPIKey,
+  maxZoom: 20,
+  id: 'osm-bright',
+}).addTo(map);
 
-      const isRetina = L.Browser.retina;
+//var start_location = localStorage.getItem('addressOneValueTransfer');
+//var end_location = localStorage.getItem('addressTwoValueTransfer');
+var start_location = 'Manila Central University, Caloocan';
+var end_location = 'Centro Escolar Universirty, Manila'
 
-      const baseUrl = "https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey={apiKey}";
-      const retinaUrl = "https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}@2x.png?apiKey={apiKey}";
+var geocodingInitialURL = `https://api.geoapify.com/v1/geocode/search?text=` + encodeURIComponent(start_location) + `&limit=1&filter=countrycode:ph&bias=countrycode:ph&format=json&apiKey=72ba55a8fd634344b11cb5424941a28b`;
 
+fetch(geocodingInitialURL)
+  .then(function(response) {
+    return response.json();
+  })
+  .then(function(data) {
+    iLat = data.results[0].lat;
+    iLong = data.results[0].lon;
 
-    //Tile layer
-    let layer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
+    iLat = iLat;
+    iLong = iLong;
 
-    //Add layer
-    layer.addTo(map);
-}
+    let initialWaypoint = [];
+    initialWaypoint[0]= iLat;
+    initialWaypoint[1]= iLong;
 
-function error(error){
-    alert('We could not get your current location. Please allow us to success your current location.')
-    console.log(error.code);
-}
+    var geocodingFinalURL = `https://api.geoapify.com/v1/geocode/search?text=` + encodeURIComponent(end_location) + `&limit=1&filter=countrycode:ph&bias=countrycode:ph&format=json&apiKey=72ba55a8fd634344b11cb5424941a28b`;
+  
+    fetch(geocodingFinalURL)
+      .then(function(response) {
+        return response.json();
+      })
+      .then(function(data) {
+        fLat = data.results[0].lat;
+        fLong = data.results[0].lon;
+    
+        fLat = fLat;
+        fLong = fLong;
+    
+        let finalWaypoint = [];
+        finalWaypoint[0]= fLat;
+        finalWaypoint[1]= fLong;
 
-// //Routing API
-// const myAPIKey = "72ba55a8fd634344b11cb5424941a28b";
-// const fromWaypoint = [14.651530, 120.971443]; // latutude, longitude
-// const toWaypoint = [14.601000, 120.989490]; // latitude, longitude
-// const url = `https://api.geoapify.com/v1/routing?waypoints=${fromWaypoint.join(',')}|${toWaypoint.join(',')}&mode=transit&details=instruction_details&apiKey=${myAPIKey}`;
+        // calculate and display routing:
+        // from 38.937165,-77.045590 (1920 Quincy Street Northwest, Washington, DC 20011, United States of America)
+        //let initialWaypoint = [14.658642,120.985043]; // latutude, longitude
+        let fromWaypointMarker = L.marker(initialWaypoint).addTo(map).bindPopup(start_location);
+        let fromWaypoint = initialWaypoint.join(',');
 
-// fetch(url).then(res => res.json()).then(result => {
-//     console.log(result);
-// }, error => console.log(err));
+        // to 38.881152,-76.990693 (1125 G Street Southeast, Washington, DC 20003, United States of America)
+        //let finalWaypoint = [14.5983169,120.9898132]; // latitude, longitude
+        let toWaypointMarker = L.marker(finalWaypoint).addTo(map).bindPopup(end_location);
+        let toWaypoint = finalWaypoint.join(',');
 
-// //Show result
-// L.geoJSON(routeResult, {
-//     style: (feature) => {
-//       return {
-//         color: "rgba(20, 137, 255, 0.7)",
-//         weight: 5
-//       };
-//     }
-//   }).bindPopup((layer) => {
-//     return `${layer.feature.properties.distance} ${layer.feature.properties.distance_units}, ${layer.feature.properties.time}`
-//   }).addTo(map);
-
-// //Route Geometry
-// const steps = [];
-// routeResult.features[0].properties.legs.forEach((leg, legIndex) => {
-//   const legGeometry = routeData.features[0].geometry.coordinates[legIndex];
-//   leg.steps.forEach((step, index) => {
-//     if (step.from_index === step.to_index) {
-//       // destination point
-//       return;
-//     }
-
-//     const stepGeometry = legGeometry.slice(step.from_index, step.to_index + 1);
-//     steps.push({
-//       "type": "Feature",
-//       "geometry": {
-//         "type": "LineString",
-//         "coordinates": stepGeometry
-//       },
-//       properties: step
-//     });
-//   });
-// });
-
-// calculate and display routing:
-// from
-/* const fromWaypoint = [14.651530, 120.971443]; // latutude, longitude
-const fromWaypointMarker = L.marker(fromWaypoint).addTo(map).bindPopup("Monumento, Caloocan City");
-
-// to
-const toWaypoint = [14.601000, 120.989490]; // latitude, longitude
-const toWaypointMarker = L.marker(toWaypoint).addTo(map).bindPopup("Far Eastern Univertsity, Manila");
+        const turnByTurnMarkerStyle = {
+          radius: 5,
+          fillColor: "#fff",
+          color: "#555",
+          weight: 1,
+          opacity: 1,
+          fillOpacity: 1
+        }
 
 
-const turnByTurnMarkerStyle = {
-  radius: 5,
-  fillColor: "#fff",
-  color: "#555",
-  weight: 1,
-  opacity: 1,
-  fillOpacity: 1
-}
+        fetch(`https://api.geoapify.com/v1/routing?waypoints=${fromWaypoint}|${toWaypoint}&mode=transit&details=instruction_details&apiKey=${myAPIKey}`).then(res => res.json()).then(result => {
+
+          // Note! GeoJSON uses [longitude, latutude] format for coordinates
+          L.geoJSON(result, {
+            style: (feature) => {
+              return {
+                color: "rgba(20, 137, 255, 0.7)",
+                weight: 5
+              };
+            }
+          }).bindPopup((layer) => {
+            return `${layer.feature.properties.distance} ${layer.feature.properties.distance_units}, ${layer.feature.properties.time}`
+          }).addTo(map);
+
+          // collect all transition positions
+          const turnByTurns = [];
+          result.features.forEach(feature => feature.properties.legs.forEach((leg, legIndex) => leg.steps.forEach(step => {
+            const pointFeature = {
+              "type": "Feature",
+              "geometry": {
+                "type": "Point",
+                "coordinates": feature.geometry.coordinates[legIndex][step.from_index]
+              },
+              "properties": {
+                "instruction": step.instruction.text
+              }
+            }
+            turnByTurns.push(pointFeature);
+          })));
+
+          L.geoJSON({
+            type: "FeatureCollection",
+            features: turnByTurns
+          }, {
+            pointToLayer: function(feature, latlng) {
+              return L.circleMarker(latlng, turnByTurnMarkerStyle);
+            }
+          }).bindPopup((layer) => {
+            return `${layer.feature.properties.instruction}`
+          }).addTo(map);
+
+        }, error => console.log(err));
 
 
-fetch(`https://api.geoapify.com/v1/routing?waypoints=${fromWaypoint.join(',')}|${toWaypoint.join(',')}&mode=transit&apiKey=${myAPIKey}`).then(res => res.json()).then(result => {
+          })
 
-  // Note! GeoJSON uses [longitude, latutude] format for coordinates
-  L.geoJSON(result, {
-    style: (feature) => {
-      return {
-        color: "rgba(20, 137, 255, 0.7)",
-        weight: 5
-      };
-    }
-  }).bindPopup((layer) => {
-    return `${layer.feature.properties.distance} ${layer.feature.properties.distance_units}, ${layer.feature.properties.time}`
-  }).addTo(map);
-
-  // collect all transition positions
-  const turnByTurns = [];
-  result.features.forEach(feature => feature.properties.legs.forEach((leg, legIndex) => leg.steps.forEach(step => {
-    const pointFeature = {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": feature.geometry.coordinates[legIndex][step.from_index]
-      },
-      "properties": {
-        "instruction": step.instruction.text
-      }
-    }
-    turnByTurns.push(pointFeature);
-  })));
-
-  L.geoJSON({
-    type: "FeatureCollection",
-    features: turnByTurns
-  }, {
-    pointToLayer: function(feature, latlng) {
-      return L.circleMarker(latlng, turnByTurnMarkerStyle);
-    }
-  }).bindPopup((layer) => {
-    return `${layer.feature.properties.instruction}`
-  }).addTo(map);
-
-}, error => console.log(err)); */
+          })
 
 
 
 
-//let watcher = navigator.geolocation.watchPosition(success);
 
-//setTimeout(() => {
-//    navigator.geolocation.clearWatch(watcher)
-//}, 15000);
-
-fetch("https://api.geoapify.com/v1/routing?waypoints=14.650671705044743,120.97867784300206|14.603427985700947,120.98487504974764&mode=transit&details=instruction_details&apiKey=72ba55a8fd634344b11cb5424941a28b")
-  .then(response => response.json())
-  .then(result => console.log(result))
-  .catch(error => console.log('error', error));
